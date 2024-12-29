@@ -16,7 +16,7 @@ namespace Models.FamilyTree.Models
         [Key]
         public Guid UserID { get; set; }
 
-        public ICollection<Guid> FamilyId { get; set; } = new List<Guid>();
+        //public ICollection<Family> UserFamilies { get; set; } = new List<Family>();
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty; // Unique username

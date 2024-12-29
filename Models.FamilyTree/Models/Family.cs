@@ -11,8 +11,8 @@ namespace Models.FamilyTree.Models
         public Guid? ParentFamilyID { get; set; } // Self-reference for sub-families Family Id will be enter here.
         public bool IsActive { get; set; }
         public string GovFamilyID { get; set; } // Family ID provided by Government of India
-        public virtual ICollection<Guid> SubFamilies { get; set; }
-        public virtual ICollection<Guid> Users { get; set; }
+        public virtual ICollection<SubFamily> SubFamilies { get; set; }
+        public virtual ICollection<User> Users { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime ModifiedDate { get; set; }
         public bool IsDeleted { get; set; } // Soft delete flag

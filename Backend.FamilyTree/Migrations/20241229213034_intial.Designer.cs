@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.FamilyTree.Migrations
 {
     [DbContext(typeof(FamilyTreeDbContext))]
-    [Migration("20241229205644_intial")]
+    [Migration("20241229213034_intial")]
     partial class intial
     {
         /// <inheritdoc />
@@ -63,15 +63,12 @@ namespace Backend.FamilyTree.Migrations
                     b.Property<Guid?>("ParentFamilyID")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("SubFamilies")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Users")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<Guid?>("SuperAdminID")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("FamilyID");
+
+                    b.HasIndex("SuperAdminID");
 
                     b.ToTable("Families");
                 });
@@ -99,6 +96,9 @@ namespace Backend.FamilyTree.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("SuperAdminID")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -108,7 +108,25 @@ namespace Backend.FamilyTree.Migrations
 
                     b.HasIndex("SenderId");
 
+                    b.HasIndex("SuperAdminID");
+
                     b.ToTable("Requests");
+                });
+
+            modelBuilder.Entity("Models.FamilyTree.Models.SubFamily", b =>
+                {
+                    b.Property<Guid>("SubFamilyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("NestedFamilyFamilyID")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("SubFamilyId");
+
+                    b.HasIndex("NestedFamilyFamilyID");
+
+                    b.ToTable("SubFamily");
                 });
 
             modelBuilder.Entity("Models.FamilyTree.Models.SuperAdmin", b =>
@@ -123,10 +141,6 @@ namespace Backend.FamilyTree.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("FamilyId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -135,18 +149,6 @@ namespace Backend.FamilyTree.Migrations
 
                     b.Property<DateTime>("ModifiedDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Requests")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Roles")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Users")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("SuperAdminID");
 
@@ -191,9 +193,8 @@ namespace Backend.FamilyTree.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("FamilyId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<Guid?>("FamilyID")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
@@ -247,6 +248,9 @@ namespace Backend.FamilyTree.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("SuperAdminID")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -256,6 +260,10 @@ namespace Backend.FamilyTree.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("UserID");
+
+                    b.HasIndex("FamilyID");
+
+                    b.HasIndex("SuperAdminID");
 
                     b.ToTable("Users");
                 });
@@ -285,14 +293,26 @@ namespace Backend.FamilyTree.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("SuperAdminID")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("UserID")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("RoleID");
 
+                    b.HasIndex("SuperAdminID");
+
                     b.HasIndex("UserID");
 
                     b.ToTable("UserRoles");
+                });
+
+            modelBuilder.Entity("Models.FamilyTree.Models.Family", b =>
+                {
+                    b.HasOne("Models.FamilyTree.Models.SuperAdmin", null)
+                        .WithMany("Families")
+                        .HasForeignKey("SuperAdminID");
                 });
 
             modelBuilder.Entity("Models.FamilyTree.Models.Request", b =>
@@ -307,16 +327,64 @@ namespace Backend.FamilyTree.Migrations
                         .HasForeignKey("SenderId")
                         .IsRequired();
 
+                    b.HasOne("Models.FamilyTree.Models.SuperAdmin", null)
+                        .WithMany("Requests")
+                        .HasForeignKey("SuperAdminID");
+
                     b.Navigation("Receiver");
 
                     b.Navigation("Sender");
                 });
 
+            modelBuilder.Entity("Models.FamilyTree.Models.SubFamily", b =>
+                {
+                    b.HasOne("Models.FamilyTree.Models.Family", "NestedFamily")
+                        .WithMany("SubFamilies")
+                        .HasForeignKey("NestedFamilyFamilyID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("NestedFamily");
+                });
+
+            modelBuilder.Entity("Models.FamilyTree.Models.User", b =>
+                {
+                    b.HasOne("Models.FamilyTree.Models.Family", null)
+                        .WithMany("Users")
+                        .HasForeignKey("FamilyID");
+
+                    b.HasOne("Models.FamilyTree.Models.SuperAdmin", null)
+                        .WithMany("Users")
+                        .HasForeignKey("SuperAdminID");
+                });
+
             modelBuilder.Entity("Models.FamilyTree.Models.UserRoles", b =>
                 {
+                    b.HasOne("Models.FamilyTree.Models.SuperAdmin", null)
+                        .WithMany("Roles")
+                        .HasForeignKey("SuperAdminID");
+
                     b.HasOne("Models.FamilyTree.Models.User", null)
                         .WithMany("Roles")
                         .HasForeignKey("UserID");
+                });
+
+            modelBuilder.Entity("Models.FamilyTree.Models.Family", b =>
+                {
+                    b.Navigation("SubFamilies");
+
+                    b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("Models.FamilyTree.Models.SuperAdmin", b =>
+                {
+                    b.Navigation("Families");
+
+                    b.Navigation("Requests");
+
+                    b.Navigation("Roles");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("Models.FamilyTree.Models.User", b =>

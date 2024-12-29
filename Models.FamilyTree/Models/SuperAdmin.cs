@@ -13,10 +13,10 @@ namespace Models.FamilyTree.Models
     {
         [Key]
         public Guid SuperAdminID { get; set; }
-        public ICollection<Guid> FamilyId { get; set; }
-        public ICollection<Guid> Users { get; set; }
-        public ICollection<Guid> Requests { get; set; }
-        public ICollection<Guid> Roles { get; set; }
+        public ICollection<Family> Families { get; set; }
+        public ICollection<User> Users { get; set; }
+        public ICollection<Request> Requests { get; set; }
+        public ICollection<UserRoles> Roles { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime ModifiedDate { get; set; }
         public bool IsDeleted { get; set; } // Soft delete flag
