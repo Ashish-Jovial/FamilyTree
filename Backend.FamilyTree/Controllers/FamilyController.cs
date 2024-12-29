@@ -2,8 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Models.FamilyTree.Models;
 
+
 namespace Backend.FamilyTree.Controllers
 {
+    [ApiController]
+    [Route("[controller]/[action]")]
     public class FamilyController : Controller
     {
         private readonly IRepository<Family> _familyRepository;
@@ -20,7 +23,7 @@ namespace Backend.FamilyTree.Controllers
             return Ok(families);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("Family/{id}")]
         public async Task<ActionResult<Family>> GetFamily(Guid id)
         {
             var family = await _familyRepository.GetByIdAsync(id);

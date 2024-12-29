@@ -1,28 +1,38 @@
 ﻿namespace Backend.FamilyTree
 {
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Configuration;
     using Models.FamilyTree.Models;
 
     public class FamilyTreeDbContext : DbContext
     {
-        public FamilyTreeDbContext(DbContextOptions<FamilyTreeDbContext> options) : 
-            base(options)
-        {
-        }
-        public DbSet<User> Users { get; set; }
-        public DbSet<Family> Families { get; set; }
-        public DbSet<FamilyMember> FamilyMembers { get; set; }
-        public DbSet<FamilyHeadChangeRequest> FamilyHeadChangeRequests { get; set; }
-        public DbSet<UserPersonalDetails> UserPersonalDetails { get; set; }
-        public DbSet<UserProfessionalDetails> UserProfessionalDetails { get; set; }
-        public DbSet<FamilySetting> FamilySettings { get; set; }
-        public DbSet<SuperAdmin> SuperAdmins { get; set; }
-        public DbSet<DeletionRequest> DeletionRequests { get; set; }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        public FamilyTreeDbContext(DbContextOptions<FamilyTreeDbContext> options)
+            : base(options)
         {
-            optionsBuilder.UseSqlServer("Your_Connection_String_Here");
         }
+        public DbSet<User> Users { get; set; } = null!;
+        public DbSet<Family> Families { get; set; } = null!;
+        public DbSet<FamilyMember> FamilyMembers { get; set; } = null!;
+        public DbSet<FamilyHeadChangeRequest> FamilyHeadChangeRequests { get; set; } = null!;
+        public DbSet<UserPersonalDetails> UserPersonalDetails { get; set; } = null!;
+        public DbSet<UserProfessionalDetails> UserProfessionalDetails { get; set; } = null!;
+        public DbSet<FamilySetting> FamilySettings { get; set; } = null!;
+        public DbSet<SuperAdmin> SuperAdmins { get; set; } = null!;
+        public DbSet<DeletionRequest> DeletionRequests { get; set; } = null!;
+
+        //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        //{
+        //    if (!optionsBuilder.IsConfigured)
+        //    {
+        //        var connectionString = _configuration.GetConnectionString("DefaultConnection");
+        //        if (string.IsNullOrEmpty(connectionString))
+        //        {
+        //            throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
+        //        }
+        //        optionsBuilder.UseSqlServer(connectionString);
+        //    }
+        //}
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

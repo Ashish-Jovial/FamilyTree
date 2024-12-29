@@ -4,6 +4,8 @@ using Models.FamilyTree.Models;
 
 namespace Backend.FamilyTree.Controllers
 {
+    [ApiController]
+    [Route("[controller]/[action]")]
     public class UserController : Controller
     {
         private readonly IRepository<User> _userRepository;
@@ -20,7 +22,7 @@ namespace Backend.FamilyTree.Controllers
             return Ok(users);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("Users/{id}")]
         public async Task<ActionResult<User>> GetUser(Guid id)
         {
             var user = await _userRepository.GetByIdAsync(id);
