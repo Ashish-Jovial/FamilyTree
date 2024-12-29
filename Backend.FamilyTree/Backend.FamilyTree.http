@@ -1,0 +1,6 @@
+@Backend.FamilyTree_HostAddress = http://localhost:5075
+
+GET {{Backend.FamilyTree_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
