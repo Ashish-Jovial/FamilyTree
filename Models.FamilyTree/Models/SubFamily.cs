@@ -10,15 +10,7 @@ namespace Models.FamilyTree.Models
     public class SubFamily
     {
         [Key]
-        public Guid SubFamilyID { get; set; }
-        public Guid ParentFamilyID { get; set; }
-        public Guid ChildFamilyID { get; set; }
-        public DateTime CreatedDate { get; set; }
-        public string ApprovalStatus { get; set; } // 'Pending', 'Approved', 'Rejected'
-        public Guid ApprovedBy { get; set; }
-
-        public virtual Family ParentFamily { get; set; }
-        public virtual Family ChildFamily { get; set; }
-        public virtual User Approver { get; set; }
+        public Guid SubFamilyId { get; set; }
+        public Family NestedFamily { get; set; }
     }
 }

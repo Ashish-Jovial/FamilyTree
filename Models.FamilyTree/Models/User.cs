@@ -15,32 +15,43 @@ namespace Models.FamilyTree.Models
     {
         [Key]
         public Guid UserID { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string UserName { get; set; } // Unique username
-        public string Email { get; set; }
-        public byte[] PasswordHash { get; set; } // Hashed password
-        public byte[] PasswordSalt { get; set; } // Salt used to hash the password
+
+        //public ICollection<Family> UserFamilies { get; set; } = new List<Family>();
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty; // Unique username
+        public string Email { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
         public DateTime DateOfBirth { get; set; }
-        public string Gender { get; set; } // 'M' or 'F'
-        public string PanCard { get; set; }
-        public string AadharCard { get; set; }
-        public string VoterCard { get; set; }
-        public string StudentIdCard { get; set; }
+        public string Nationality { get; set; } = string.Empty;
+        public string Gender { get; set; } = string.Empty; // 'M' or 'F'
+        public string PanCard { get; set; } = string.Empty;
+        public bool HaveFamily { get; set; }
+        public string AadharCard { get; set; } = string.Empty;
+        public string VoterCard { get; set; } = string.Empty;
+        public string Occupation { get; set; } = string.Empty;
+
+        public byte[] PasswordHash { get; set; } = Array.Empty<byte>(); // Hashed password
+        public byte[] PasswordSalt { get; set; } = Array.Empty<byte>(); // Salt used to hash the password
+
+        // Professional information
+        public List<string> CompanyName { get; set; } = new List<string>();
+        public string Designation { get; set; } = string.Empty;
+        public float AnnualIncome { get; set; }
+        public string StudentIdCard { get; set; } = string.Empty;
+
+        // Application roles
+        public ICollection<UserRoles> Roles { get; set; } = new List<UserRoles>();
+
+        // Requests (Actions details)
+        public ICollection<Request> SentRequests { get; set; } = new List<Request>();
+        public ICollection<Request> ReceivedRequests { get; set; } = new List<Request>();
+
         public DateTime CreatedDate { get; set; }
+        public DateTime ModifiedDate { get; set; }
         public bool IsDeleted { get; set; } // Soft delete flag
-        public DateTime? DeletionDate { get; set; } // Date of logical deletion
-        public Guid? DeletedByAdminID { get; set; } // Super Admin who deleted the user
-
-        public virtual ICollection<FamilyMember> FamilyMemberships { get; set; }
-        public virtual UserPersonalDetails PersonalDetails { get; set; }
-        public virtual UserProfessionalDetails ProfessionalDetails { get; set; }
-
-        public User()
-        {
-            FamilyMemberships = new List<FamilyMember>();
-        }
+        public Guid? CreatedBy { get; set; }
+        public Guid? ModifiedBy { get; set; }
     }
-
-
 }

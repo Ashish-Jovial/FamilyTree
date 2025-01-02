@@ -13,4 +13,10 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Models\FamilyApprovalRequests\" />
+    <Folder Include="Models\AdminApprovalRequests\" />
+    <Folder Include="Models\UserApprovalRequests\" />
+  </ItemGroup>
+
 </Project>

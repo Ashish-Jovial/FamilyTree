@@ -13,13 +13,9 @@
         }
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Family> Families { get; set; } = null!;
-        public DbSet<FamilyMember> FamilyMembers { get; set; } = null!;
-        public DbSet<FamilyHeadChangeRequest> FamilyHeadChangeRequests { get; set; } = null!;
-        public DbSet<UserPersonalDetails> UserPersonalDetails { get; set; } = null!;
-        public DbSet<UserProfessionalDetails> UserProfessionalDetails { get; set; } = null!;
-        public DbSet<FamilySetting> FamilySettings { get; set; } = null!;
+        public DbSet<Request> Requests { get; set; } = null!;
         public DbSet<SuperAdmin> SuperAdmins { get; set; } = null!;
-        public DbSet<DeletionRequest> DeletionRequests { get; set; } = null!;
+        public DbSet<UserRoles> UserRoles { get; set; } = null!;
 
         //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         //{
@@ -36,21 +32,21 @@
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Configure relationships, keys, etc.
-            modelBuilder.Entity<Family>()
-                .HasMany(f => f.FamilyMembers)
-                .WithOne(fm => fm.Family)
-                .HasForeignKey(fm => fm.FamilyID);
+            // Configure relationships, keys, etc.\
+            modelBuilder.Entity<Request>()
+               .HasOne(r => r.Sender)
+               .WithMany(u => u.SentRequests)
+               .HasForeignKey(r => r.SenderId)
+               .OnDelete(DeleteBehavior.ClientSetNull);// Prevent cascade delete for SenderId
 
-            modelBuilder.Entity<FamilyMember>()
-                .HasOne(fm => fm.User)
-                .WithMany(u => u.FamilyMemberships)
-                .HasForeignKey(fm => fm.UserID);
+            modelBuilder.Entity<Request>()
+                .HasOne(r => r.Receiver)
+                .WithMany(u => u.ReceivedRequests)
+                .HasForeignKey(r => r.ReceiverId)
+                .OnDelete(DeleteBehavior.ClientSetNull);// Allow cascade delete for ReceiverId
 
-            modelBuilder.Entity<FamilyHeadChangeRequest>()
-                .HasOne(fh => fh.RequestedBy)
-                .WithMany()
-                .HasForeignKey(fh => fh.RequestedByID);
+            base.OnModelCreating(modelBuilder);
+
         }
     }
 
