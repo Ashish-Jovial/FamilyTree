@@ -7,8 +7,8 @@ namespace Backend.FamilyTree.Repositories
 {
     public interface IRequestNotificationHub<T> where T : class
     {
-        Task<T> CreateRequestAsync(T senderId);
-        Task<T> ApproveRequestAsync(T requestId);
+        Task<T> CreateRequestAsync(T requestId);
+        Task<T> ApproveRequestAsync(T senderId);
         Task SaveChangesAsync();
     }
 
@@ -27,11 +27,11 @@ namespace Backend.FamilyTree.Repositories
             return entity is null ? throw new KeyNotFoundException($"Entity with ID '{senderId}' was not found.") : entity;
         }
 
-        public async Task<T> CreateRequestAsync(T request)
+        public async Task<T> CreateRequestAsync(T requestId)
         {
-            await _dbSet.AddAsync(request);
+            await _dbSet.AddAsync(requestId);
             await _hubContext.Clients.All.SendAsync("ReceiveNotification", "New request created");
-            return request;
+            return requestId;
         }
 
         public async Task SaveChangesAsync() => await _context.SaveChangesAsync();
