@@ -1,6 +1,7 @@
 using Backend.FamilyTree.Repositories;
 using Backend.FamilyTree;
 using Microsoft.EntityFrameworkCore;
+using Backend.FamilyTree.SignalRNotifications;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,8 @@ builder.Services.AddAutoMapper(typeof(Program)); // If AutoMapper is used
 // Enable Swagger services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR();
+
 
 var app = builder.Build();
 
@@ -34,5 +37,6 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();

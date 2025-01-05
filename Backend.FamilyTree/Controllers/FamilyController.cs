@@ -7,14 +7,9 @@ namespace Backend.FamilyTree.Controllers
 {
     [ApiController]
     [Route("[controller]/[action]")]
-    public class FamilyController : Controller
+    public class FamilyController(IRepository<Family> familyRepository) : Controller
     {
-        private readonly IRepository<Family> _familyRepository;
-
-        public FamilyController(IRepository<Family> familyRepository)
-        {
-            _familyRepository = familyRepository;
-        }
+        private readonly IRepository<Family> _familyRepository = familyRepository;
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Family>>> GetFamilies()
