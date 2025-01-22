@@ -1,12 +1,15 @@
 ﻿using Backend.FamilyTree.Repositories;
 using Backend.FamilyTree.Services;
 using Backend.FamilyTree.SignalRNotifications;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Models.FamilyTree.Models;
 using System;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using IAuthenticationService = Backend.FamilyTree.Services.IAuthenticationService;
 
 namespace Backend.FamilyTree.Controllers
 {
@@ -21,23 +24,121 @@ namespace Backend.FamilyTree.Controllers
         private readonly IHubContext<NotificationHub> _notificationHubContext;
         private readonly INotificationRepository _notificationRepository;
         private readonly ILoggingService _loggingService;
+        private readonly IAuthenticationService _authenticationService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UserController"/> class.
         /// </summary>
         /// <param name="userRepository">The user repository.</param>
         /// <param name="notificationHubContext">The SignalR notification hub context.</param>
-        public UserController(IRepository<User> userRepository, 
+        public UserController(IRepository<User> userRepository,
             IHubContext<NotificationHub> notificationHubContext,
             INotificationRepository notificationRepository,
-            ILoggingService loggingService)
-        {
+            ILoggingService loggingService,
+            IAuthenticationService authenticationService)
+        { 
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _notificationHubContext = notificationHubContext ?? throw new ArgumentNullException(nameof(notificationHubContext));
             _notificationRepository = notificationRepository ?? throw new ArgumentNullException(nameof(notificationRepository));
             _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
+            _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public async Task<IActionResult> Register([FromBody] UserRegistrationModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _authenticationService.RegisterUserAsync(model);
+                return Ok("User registered successfully");
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogEventAsync("RegisterUserError", ex.Message);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public async Task<IActionResult> Login([FromBody] UserLoginModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var token = await _authenticationService.LoginUserAsync(model);
+                return Ok(new { Token = token });
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogEventAsync("LoginUserError", ex.Message);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="provider"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public IActionResult ExternalLogin(string provider)
+        {
+            var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "User");
+            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+            return Challenge(properties, provider);
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public async Task<IActionResult> ExternalLoginCallback()
+        {
+            var result = await HttpContext.AuthenticateAsync();
+            if (!result.Succeeded)
+            {
+                return BadRequest("External authentication failed");
+            }
+
+            var claims = result.Principal.Identities.FirstOrDefault()?.Claims;
+            var provider = result.Properties.Items[".AuthScheme"];
+            var providerUserId = claims?.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+
+            if (providerUserId == null || email == null || name == null)
+            {
+                return BadRequest("External authentication failed");
+            }
+
+            try
+            {
+                var token = await _authenticationService.ExternalLoginAsync(provider, providerUserId, email, name);
+                return Ok(new { Token = token });
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogEventAsync("ExternalLoginError", ex.Message);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
         /// <summary>
         /// Gets all users.
         /// </summary>

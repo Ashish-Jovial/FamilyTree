@@ -53,5 +53,7 @@ namespace Models.FamilyTree.Models
         public bool IsDeleted { get; set; } // Soft delete flag
         public Guid? CreatedBy { get; set; }
         public Guid? ModifiedBy { get; set; }
+        public string Provider { get; set; } // New field to store the provider name
+        public string ProviderUserId { get; set; } // New field to store the provider user ID
     }
 }

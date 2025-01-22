@@ -1,10 +1,15 @@
 using Backend.FamilyTree;
 using Backend.FamilyTree.Repositories;
+using Backend.FamilyTree.Services;
 using Backend.FamilyTree.SignalRNotifications;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
+using AuthenticationService = Backend.FamilyTree.Services.AuthenticationService;
+using IAuthenticationService = Backend.FamilyTree.Services.IAuthenticationService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +20,9 @@ builder.Services.AddDbContext<FamilyTreeDbContext>(options =>
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<ILogRepository, LogRepository>();
+builder.Services.AddScoped<ILoggingService, LoggingService>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
@@ -68,9 +76,43 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         }
     };
+})
+.AddFacebook(options =>
+{
+    options.AppId = builder.Configuration["Authentication:Facebook:AppId"] ?? throw new ArgumentNullException("Facebook AppId is not configured.");
+    options.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"] ?? throw new ArgumentNullException("Facebook AppSecret is not configured.");
+})
+.AddGoogle(options =>
+{
+    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? throw new ArgumentNullException("Google ClientId is not configured.");
+    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? throw new ArgumentNullException("Google ClientSecret is not configured.");
+})
+.AddOAuth("Yahoo", options =>
+{
+    options.ClientId = builder.Configuration["Authentication:Yahoo:ClientId"] ?? throw new ArgumentNullException("Yahoo ClientId is not configured.");
+    options.ClientSecret = builder.Configuration["Authentication:Yahoo:ClientSecret"] ?? throw new ArgumentNullException("Yahoo ClientSecret is not configured.");
+    options.CallbackPath = new PathString("/signin-yahoo");
+    options.AuthorizationEndpoint = "https://api.login.yahoo.com/oauth2/request_auth";
+    options.TokenEndpoint = "https://api.login.yahoo.com/oauth2/get_token";
+    options.UserInformationEndpoint = "https://api.login.yahoo.com/openid/v1/userinfo";
+    options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "sub");
+    options.ClaimActions.MapJsonKey(ClaimTypes.Name, "name");
+    options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
+    options.SaveTokens = true;
 });
 
 builder.Services.AddAuthorization();
+
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
 
 var app = builder.Build();
 
@@ -82,6 +124,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
