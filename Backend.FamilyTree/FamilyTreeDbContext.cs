@@ -16,7 +16,8 @@
         public DbSet<Request> Requests { get; set; } = null!;
         public DbSet<SuperAdmin> SuperAdmins { get; set; } = null!;
         public DbSet<UserRoles> UserRoles { get; set; } = null!;
-
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Log> Logs { get; set; }
         //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         //{
         //    if (!optionsBuilder.IsConfigured)

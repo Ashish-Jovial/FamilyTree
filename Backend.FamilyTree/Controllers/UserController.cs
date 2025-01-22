@@ -1,74 +1,201 @@
 ﻿using Backend.FamilyTree.Repositories;
+using Backend.FamilyTree.Services;
+using Backend.FamilyTree.SignalRNotifications;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Models.FamilyTree.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Backend.FamilyTree.Controllers
 {
+    /// <summary>
+    /// Controller for managing users.
+    /// </summary>
     [ApiController]
     [Route("[controller]/[action]")]
-    public class UserController : Controller
+    public class UserController : ControllerBase
     {
         private readonly IRepository<User> _userRepository;
+        private readonly IHubContext<NotificationHub> _notificationHubContext;
+        private readonly INotificationRepository _notificationRepository;
+        private readonly ILoggingService _loggingService;
 
-        public UserController(IRepository<User> userRepository)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UserController"/> class.
+        /// </summary>
+        /// <param name="userRepository">The user repository.</param>
+        /// <param name="notificationHubContext">The SignalR notification hub context.</param>
+        public UserController(IRepository<User> userRepository, 
+            IHubContext<NotificationHub> notificationHubContext,
+            INotificationRepository notificationRepository,
+            ILoggingService loggingService)
         {
-            _userRepository = userRepository;
+            _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+            _notificationHubContext = notificationHubContext ?? throw new ArgumentNullException(nameof(notificationHubContext));
+            _notificationRepository = notificationRepository ?? throw new ArgumentNullException(nameof(notificationRepository));
+            _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
         }
 
+        /// <summary>
+        /// Gets all users.
+        /// </summary>
+        /// <returns>A list of users.</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
-            var users = await _userRepository.GetAllAsync();
-            return Ok(users);
+            try
+            {
+                var users = await _userRepository.GetAllAsync();
+                await _loggingService.LogEventAsync("GetUsers", "Retrieved all users");
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogEventAsync("GetUsersError", ex.Message);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
-        [HttpGet("Users/{id}")]
+        /// <summary>
+        /// Gets a user by its identifier.
+        /// </summary>
+        /// <param name="id">The user identifier.</param>
+        /// <returns>The user.</returns>
+        [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUser(Guid id)
         {
-            var user = await _userRepository.GetByIdAsync(id);
-
-            if (user == null)
+            try
             {
-                return NotFound();
-            }
+                var user = await _userRepository.GetByIdAsync(id);
 
-            return Ok(user);
+                if (user == null)
+                {
+                    await _loggingService.LogEventAsync("GetUserNotFound", $"User with ID {id} not found");
+                    return NotFound();
+                }
+
+                await _loggingService.LogEventAsync("GetUser", $"Retrieved user with ID {id}");
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogEventAsync("GetUserError", ex.Message);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// Creates a new user and sends a notification to the admin.
+        /// </summary>
+        /// <param name="user">The user to create.</param>
+        /// <returns>The created user.</returns>
         [HttpPost]
         public async Task<ActionResult<User>> CreateUser([FromBody] User user)
         {
-            await _userRepository.AddAsync(user);
-            await _userRepository.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetUser), new { id = user.UserID }, user);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _userRepository.AddAsync(user);
+                await _userRepository.SaveChangesAsync();
+                await SendNotificationToAdminAsync(user, "User Created");
+                await _loggingService.LogEventAsync("CreateUser", $"Created user with ID {user.UserID}");
+                return CreatedAtAction(nameof(GetUser), new { id = user.UserID }, user);
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogEventAsync("CreateUserError", ex.Message);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// Updates an existing user.
+        /// </summary>
+        /// <param name="id">The user identifier.</param>
+        /// <param name="user">The user to update.</param>
+        /// <returns>No content.</returns>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser(Guid id, [FromBody] User user)
         {
-            if (id != user.UserID)
+            if (!ModelState.IsValid)
             {
-                return BadRequest();
+                return BadRequest(ModelState);
             }
 
-            _userRepository.Update(user);
-            await _userRepository.SaveChangesAsync();
-            return NoContent();
+            if (id != user.UserID)
+            {
+                return BadRequest("User ID mismatch.");
+            }
+
+            try
+            {
+                _userRepository.Update(user);
+                await _userRepository.SaveChangesAsync();
+                await _loggingService.LogEventAsync("UpdateUser", $"Updated user with ID {id}");
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogEventAsync("UpdateUserError", ex.Message);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// Deletes a user by its identifier.
+        /// </summary>
+        /// <param name="id">The user identifier.</param>
+        /// <returns>No content.</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(Guid id)
         {
-            var user = await _userRepository.GetByIdAsync(id);
-
-            if (user == null)
+            try
             {
-                return NotFound();
-            }
+                var user = await _userRepository.GetByIdAsync(id);
 
-            _userRepository.Delete(user);
-            await _userRepository.SaveChangesAsync();
-            return NoContent();
+                if (user == null)
+                {
+                    await _loggingService.LogEventAsync("DeleteUserNotFound", $"User with ID {id} not found");
+                    return NotFound();
+                }
+
+                _userRepository.Delete(user);
+                await _userRepository.SaveChangesAsync();
+                await _loggingService.LogEventAsync("DeleteUser", $"Deleted user with ID {id}");
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogEventAsync("DeleteUserError", ex.Message);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sends a notification to the admin when a user is created.
+        /// </summary>
+        /// <param name="user">The user associated with the event.</param>
+        /// <param name="eventMessage">The event message.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        private async Task SendNotificationToAdminAsync(User user, string eventMessage)
+        {
+            var notification = new Notification
+            {
+                NotificationId = Guid.NewGuid(),
+                UserId = user.UserID,
+                UserName = user.UserName,
+                EventMessage = eventMessage,
+                Timestamp = DateTime.UtcNow
+            };
+            await _notificationRepository.AddAsync(notification);
+            await _notificationRepository.SaveChangesAsync();
+            await _notificationHubContext.Clients.Group("Admins").SendAsync("ReceiveNotification", notification);
         }
     }
 }
