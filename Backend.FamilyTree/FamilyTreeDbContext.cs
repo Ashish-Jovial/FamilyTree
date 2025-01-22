@@ -18,19 +18,7 @@
         public DbSet<UserRoles> UserRoles { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Log> Logs { get; set; }
-        //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        //{
-        //    if (!optionsBuilder.IsConfigured)
-        //    {
-        //        var connectionString = _configuration.GetConnectionString("DefaultConnection");
-        //        if (string.IsNullOrEmpty(connectionString))
-        //        {
-        //            throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
-        //        }
-        //        optionsBuilder.UseSqlServer(connectionString);
-        //    }
-        //}
-
+    
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configure relationships, keys, etc.\
@@ -50,5 +38,4 @@
 
         }
     }
-
 }
