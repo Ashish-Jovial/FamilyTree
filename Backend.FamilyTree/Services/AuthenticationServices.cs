@@ -50,7 +50,8 @@ namespace Backend.FamilyTree.Services
                 PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(model.Password)),
                 PasswordSalt = hmac.Key,
                 CreatedDate = DateTime.UtcNow,
-                ModifiedDate = DateTime.UtcNow
+                ModifiedDate = DateTime.UtcNow,
+                Roles = new List<UserRoles> { new UserRoles { RoleName = "user" } } // Default role
             };
 
             await _userRepository.AddAsync(user);
@@ -97,7 +98,8 @@ namespace Backend.FamilyTree.Services
                 Subject = new ClaimsIdentity(new[]
                 {
                 new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
-                new Claim(ClaimTypes.Name, user.UserName)
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.Role, string.Join(",", user.Roles.Select(r => r.RoleName)))
             }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha512Signature)
@@ -122,7 +124,8 @@ namespace Backend.FamilyTree.Services
                     Provider = provider,
                     ProviderUserId = providerUserId,
                     CreatedDate = DateTime.UtcNow,
-                    ModifiedDate = DateTime.UtcNow
+                    ModifiedDate = DateTime.UtcNow,
+                    Roles = new List<UserRoles> { new UserRoles { RoleName = "user" } } // Default role
                 };
 
                 await _userRepository.AddAsync(user);
@@ -149,9 +152,10 @@ namespace Backend.FamilyTree.Services
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
-                new Claim(ClaimTypes.Name, user.UserName)
-            }),
+                    new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(ClaimTypes.Role, string.Join(",", user.Roles.Select(r => r.RoleName)))
+                }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha512Signature)
             };

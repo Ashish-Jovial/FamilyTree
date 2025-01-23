@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Elastic.Clients.Elasticsearch.QueryDsl;
 using Elastic.Clients.Elasticsearch;
-using Elastic.Clients.Elasticsearch.QueryDsl;
-using Elastic.Transport;
+using Models.FamilyTree.Models;
 
-namespace Models.FamilyTree.Models
+namespace Backend.FamilyTree.Services
 {
     public interface ISearchService
     {

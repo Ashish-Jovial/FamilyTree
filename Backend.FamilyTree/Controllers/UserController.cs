@@ -2,8 +2,10 @@
 using Backend.FamilyTree.Services;
 using Backend.FamilyTree.SignalRNotifications;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Models.FamilyTree;
 using Models.FamilyTree.Models;
 using System;
 using System.Collections.Generic;
@@ -26,6 +28,7 @@ namespace Backend.FamilyTree.Controllers
         private readonly ILoggingService _loggingService;
         private readonly IAuthenticationService _authenticationService;
         private readonly ISearchService _searchService;
+        private readonly IRoleManagementService _roleManagementService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UserController"/> class.
@@ -37,7 +40,8 @@ namespace Backend.FamilyTree.Controllers
             INotificationRepository notificationRepository,
             ILoggingService loggingService,
             IAuthenticationService authenticationService,
-            ISearchService searchService)
+            ISearchService searchService,
+            IRoleManagementService roleManagementService)
         { 
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _notificationHubContext = notificationHubContext ?? throw new ArgumentNullException(nameof(notificationHubContext));
@@ -45,6 +49,7 @@ namespace Backend.FamilyTree.Controllers
             _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
             _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
             _searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
+            _roleManagementService = roleManagementService ?? throw new ArgumentNullException(nameof(roleManagementService));
         }
         /// <summary>
         /// 
@@ -52,6 +57,7 @@ namespace Backend.FamilyTree.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost]
+        [Authorize(Roles = "admin,superadmin")]
         public async Task<IActionResult> Register([FromBody] UserRegistrationModel model)
         {
             if (!ModelState.IsValid)
@@ -77,6 +83,7 @@ namespace Backend.FamilyTree.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] UserLoginModel model)
         {
             if (!ModelState.IsValid)
@@ -101,6 +108,7 @@ namespace Backend.FamilyTree.Controllers
         /// <param name="provider"></param>
         /// <returns></returns>
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult ExternalLogin(string provider)
         {
             var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "User");
@@ -112,6 +120,7 @@ namespace Backend.FamilyTree.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> ExternalLoginCallback()
         {
             var result = await HttpContext.AuthenticateAsync();
@@ -126,7 +135,7 @@ namespace Backend.FamilyTree.Controllers
             var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
             var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
 
-            if (providerUserId == null || email == null || name == null)
+            if (providerUserId == null || email == null || name == null || provider == null)
             {
                 return BadRequest("External authentication failed");
             }
@@ -147,6 +156,7 @@ namespace Backend.FamilyTree.Controllers
         /// </summary>
         /// <returns>A list of users.</returns>
         [HttpGet]
+        [Authorize(Roles = "admin,superadmin")]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
             try
@@ -168,6 +178,7 @@ namespace Backend.FamilyTree.Controllers
         /// <param name="id">The user identifier.</param>
         /// <returns>The user.</returns>
         [HttpGet("{id}")]
+        [Authorize(Roles = "admin,superadmin")]
         public async Task<ActionResult<User>> GetUser(Guid id)
         {
             try
@@ -196,6 +207,7 @@ namespace Backend.FamilyTree.Controllers
         /// <param name="user">The user to create.</param>
         /// <returns>The created user.</returns>
         [HttpPost]
+        [Authorize(Roles = "admin,superadmin")]
         public async Task<ActionResult<User>> CreateUser([FromBody] User user)
         {
             if (!ModelState.IsValid)
@@ -225,6 +237,7 @@ namespace Backend.FamilyTree.Controllers
         /// <param name="user">The user to update.</param>
         /// <returns>No content.</returns>
         [HttpPut("{id}")]
+        [Authorize(Roles = "admin,superadmin")]
         public async Task<IActionResult> UpdateUser(Guid id, [FromBody] User user)
         {
             if (!ModelState.IsValid)
@@ -257,6 +270,7 @@ namespace Backend.FamilyTree.Controllers
         /// <param name="id">The user identifier.</param>
         /// <returns>No content.</returns>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "admin,superadmin")]
         public async Task<IActionResult> DeleteUser(Guid id)
         {
             try
@@ -281,6 +295,7 @@ namespace Backend.FamilyTree.Controllers
             }
         }
         [HttpGet("search")]
+        [Authorize(Roles = "admin,superadmin,technicalsupport,developer")]
         public async Task<ActionResult<IEnumerable<SearchResultModel>>> Search([FromQuery] SearchRequestModel query)
         {
             try
@@ -291,6 +306,46 @@ namespace Backend.FamilyTree.Controllers
             catch (Exception ex)
             {
                 await _loggingService.LogEventAsync("SearchError", ex.Message);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+        [HttpPost("request-role-change")]
+        [Authorize(Roles = "user,admin,superadmin,technicalsupport,developer")]
+        public async Task<IActionResult> RequestRoleChange([FromBody] RoleChangeRequestModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _roleManagementService.RequestRoleChangeAsync(model.UserId, model.RequestedRole);
+                return Ok("Role change request submitted successfully");
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogEventAsync("RequestRoleChangeError", ex.Message);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+        [HttpPost("approve-role-change")]
+        [Authorize(Roles = "admin,superadmin")]
+        public async Task<IActionResult> ApproveRoleChange([FromBody] ApproveRoleChangeModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _roleManagementService.ApproveRoleChangeAsync(model.RequestId);
+                return Ok("Role change approved successfully");
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogEventAsync("ApproveRoleChangeError", ex.Message);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
