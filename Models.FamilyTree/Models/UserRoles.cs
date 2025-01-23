@@ -17,6 +17,7 @@ namespace Models.FamilyTree.Models
         public bool IsDeleted { get; set; } // Soft delete flag
         public Guid? CreatedBy { get; set; }
         public Guid? ModifiedBy { get; set; }
+        public ICollection<User> Users { get; set; } = new List<User>();
 
     }
 }
