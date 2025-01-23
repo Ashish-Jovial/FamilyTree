@@ -6,8 +6,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Models.FamilyTree.Models;
 using System.Security.Claims;
 using System.Text;
+using Elastic.Clients.Elasticsearch;
+using Elastic.Transport;
 using AuthenticationService = Backend.FamilyTree.Services.AuthenticationService;
 using IAuthenticationService = Backend.FamilyTree.Services.IAuthenticationService;
 
@@ -23,6 +26,14 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<ILogRepository, LogRepository>();
 builder.Services.AddScoped<ILoggingService, LoggingService>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+
+// Configure ElasticSearch
+var settings = new ElasticsearchClientSettings(new Uri(builder.Configuration["ElasticSearch:Uri"]))
+    .DefaultIndex("familytree");
+var client = new ElasticsearchClient(settings);
+builder.Services.AddSingleton(client);
+
+builder.Services.AddScoped<ISearchService, SearchService>();
 
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
@@ -133,13 +144,3 @@ app.MapControllers();
 app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();
-
-/*
- 1.	Added JWT Authentication: Configured JWT authentication with JwtBearerDefaults.AuthenticationScheme.
-2.	Configured SignalR to Use Access Token: Configured SignalR to use the access token from the query string.
-3.	Added Authentication and Authorization Middleware: Added app.UseAuthentication() and app.UseAuthorization() to the middleware pipeline.
-
-Program.cs now includes the necessary configurations for JWT authentication and SignalR, 
-ensuring that only authenticated users can access the SignalR hub and receive notifications.
-
- */
