@@ -25,6 +25,7 @@ namespace Backend.FamilyTree.Controllers
         private readonly INotificationRepository _notificationRepository;
         private readonly ILoggingService _loggingService;
         private readonly IAuthenticationService _authenticationService;
+        private readonly ISearchService _searchService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UserController"/> class.
@@ -35,13 +36,15 @@ namespace Backend.FamilyTree.Controllers
             IHubContext<NotificationHub> notificationHubContext,
             INotificationRepository notificationRepository,
             ILoggingService loggingService,
-            IAuthenticationService authenticationService)
+            IAuthenticationService authenticationService,
+            ISearchService searchService)
         { 
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _notificationHubContext = notificationHubContext ?? throw new ArgumentNullException(nameof(notificationHubContext));
             _notificationRepository = notificationRepository ?? throw new ArgumentNullException(nameof(notificationRepository));
             _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
             _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
+            _searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
         }
         /// <summary>
         /// 
@@ -277,7 +280,20 @@ namespace Backend.FamilyTree.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<SearchResultModel>>> Search([FromQuery] SearchRequestModel query)
+        {
+            try
+            {
+                var results = await _searchService.SearchAsync(query);
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogEventAsync("SearchError", ex.Message);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
         /// <summary>
         /// Sends a notification to the admin when a user is created.
         /// </summary>
