@@ -27,8 +27,20 @@ builder.Services.AddScoped<ILogRepository, LogRepository>();
 builder.Services.AddScoped<ILoggingService, LoggingService>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
+//// Configure ElasticSearch
+//var settings = new ElasticsearchClientSettings(new Uri(builder.Configuration["ElasticSearch:Uri"]))
+//    .DefaultIndex("familytree");
+//var client = new ElasticsearchClient(settings);
+//builder.Services.AddSingleton(client);
+
 // Configure ElasticSearch
-var settings = new ElasticsearchClientSettings(new Uri(builder.Configuration["ElasticSearch:Uri"]))
+var elasticUri = builder.Configuration["ElasticSearch:Uri"];
+if (string.IsNullOrEmpty(elasticUri))
+{
+    throw new ArgumentNullException("ElasticSearch:Uri", "ElasticSearch URI is not configured.");
+}
+
+var settings = new ElasticsearchClientSettings(new Uri(elasticUri))
     .DefaultIndex("familytree");
 var client = new ElasticsearchClient(settings);
 builder.Services.AddSingleton(client);
